@@ -1,0 +1,28 @@
+local_backend: true
+backend:
+  name: github
+  repo: YOUR_GITHUB_USERNAME/YOUR_REPO_NAME
+  branch: main
+
+site_url: https://your-site-url.example
+logo_url: /favicon.svg
+
+media_folder: "public/uploads"
+public_folder: "/uploads"
+
+collections:
+  - name: "cards"
+    label: "Cards"
+    folder: "src/content/cards"
+    create: true
+    slug: "{{name}}-{{number}}"
+    fields:
+      - { label: "Name", name: "name", widget: "string" }
+      - { label: "Number", name: "number", widget: "string" }
+      - { label: "ReleaseDate", name: "release_date", widget: "datetime", time_format: false }
+      - { label: "Collection Name", name: "collection_name", widget: "string" }
+      - { label: "Image", name: "image", widget: "image", choose_url: true, required: false }
+      - { label: "First Edition", name: "first_edition", widget: "boolean", default: false }
+      - { label: "Holographic", name: "holographic", widget: "boolean", default: false }
+      - { label: "Missing", name: "missing", widget: "boolean", default: false }
+      - { label: "Notes", name: "notes", widget: "markdown", required: false }
