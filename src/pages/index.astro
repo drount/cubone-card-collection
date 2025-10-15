@@ -10,19 +10,18 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
   .sort();
 ---
 
-<html lang="en" class="h-full">
+<html lang="en" class="h-full dark">
   <head>
     <meta charset="utf-8" />
     <title>All Cubone Cards</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- Prevent theme FOUC -->
+    <!-- Prevent theme FOUC: default to dark unless user explicitly chose light -->
     <script>
       (() => {
         const stored = localStorage.getItem("theme");
-        const prefersDark = window.matchMedia(
-          "(prefers-color-scheme: dark)"
-        ).matches;
-        if (stored === "dark" || (!stored && prefersDark)) {
+        if (stored === "light") {
+          document.documentElement.classList.remove("dark");
+        } else {
           document.documentElement.classList.add("dark");
         }
       })();
@@ -85,7 +84,7 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
         <div class="max-w-6xl mx-auto px-4">
           <form
             id="controls"
-            class="grid grid-cols-1 md:grid-cols-5 gap-3 py-3"
+            class="grid grid-cols-1 md:grid-cols-5 gap-3 py-3 items-end"
             onsubmit="event.preventDefault()"
           >
             <!-- Filter: Collection -->
@@ -199,7 +198,14 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
     </header>
 
     <!-- Content -->
-    <main class="max-w-6xl mx-auto px-4 py-8 space-y-6">
+    <main class="max-w-6xl mx-auto px-4 py-4 space-y-3">
+      <!-- Results counter -->
+      <div
+        id="resultCount"
+        class="pb-1 text-right text-sm text-slate-600 dark:text-slate-400"
+      >
+        Showing 0 cards
+      </div>
       <!-- Cards -->
       <div id="list" class="space-y-4">
         {
@@ -360,6 +366,7 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
       const extraToggle = $("#extraToggle");
       const q = $("#q");
       const sort = $("#sort");
+      const resultCount = $("#resultCount");
       let showMissingOnly = false;
       let showExtra = false; // off = hide extras
 
@@ -389,6 +396,7 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
           }
         }
 
+        // Sort
         visible.sort((a, b) => {
           const ta = Number(a.getAttribute("data-ts")) || 0;
           const tb = Number(b.getAttribute("data-ts")) || 0;
@@ -406,6 +414,11 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
 
         visible.forEach((el) => list.appendChild(el));
         empty.classList.toggle("hidden", visible.length > 0);
+
+        // ✅ Update counter
+        resultCount.textContent = `Showing ${visible.length} card${
+          visible.length === 1 ? "" : "s"
+        }`;
       }
 
       // Event listeners
