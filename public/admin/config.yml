@@ -19,10 +19,32 @@ collections:
     fields:
       - { label: "Name", name: "name", widget: "string" }
       - { label: "Number", name: "number", widget: "string" }
-      - { label: "ReleaseDate", name: "release_date", widget: "datetime", time_format: false }
+      - {
+          label: "ReleaseDate",
+          name: "release_date",
+          widget: "datetime",
+          time_format: false,
+        }
       - { label: "Collection Name", name: "collection_name", widget: "string" }
-      - { label: "Image", name: "image", widget: "image", choose_url: true, required: false }
-      - { label: "First Edition", name: "first_edition", widget: "boolean", default: false }
-      - { label: "Holographic", name: "holographic", widget: "boolean", default: false }
+      - {
+          label: "Image",
+          name: "image",
+          widget: "image",
+          choose_url: true,
+          required: false,
+        }
+      - {
+          label: "First Edition",
+          name: "first_edition",
+          widget: "boolean",
+          default: false,
+        }
+      - {
+          label: "Holographic",
+          name: "holographic",
+          widget: "boolean",
+          default: false,
+        }
       - { label: "Missing", name: "missing", widget: "boolean", default: false }
+      - { label: "Extra", name: "extra", widget: "boolean", default: false }
       - { label: "Notes", name: "notes", widget: "markdown", required: false }

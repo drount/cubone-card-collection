@@ -66,6 +66,7 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
           </button>
         </div>
       </div>
+
       <div class="max-w-6xl mx-auto px-4 py-8 space-y-6">
         <h2 class="text-xl md:text-xl font-bold tracking-tight">
           Collection rules:
@@ -76,6 +77,7 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
           collection name (e.g. English vs. Japanese)
         </p>
       </div>
+
       <!-- Sticky glass controls -->
       <div
         class="sticky top-0 z-20 border-y border-slate-200/70 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/50 dark:border-slate-800/70 dark:bg-slate-900/60"
@@ -83,7 +85,7 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
         <div class="max-w-6xl mx-auto px-4">
           <form
             id="controls"
-            class="grid grid-cols-1 md:grid-cols-4 gap-3 py-3"
+            class="grid grid-cols-1 md:grid-cols-5 gap-3 py-3"
             onsubmit="event.preventDefault()"
           >
             <!-- Filter: Collection -->
@@ -165,6 +167,32 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
                 ></span>
               </label>
             </label>
+
+            <!-- Toggle: Show extras -->
+            <label class="flex flex-col gap-2">
+              <span
+                class="text-xs font-medium text-slate-600 dark:text-slate-300"
+              >
+                Show extras
+              </span>
+              <label
+                class="relative inline-flex items-center cursor-pointer align-middle max-h-full"
+              >
+                <input type="checkbox" id="extraToggle" class="sr-only peer" />
+                <div
+                  class="w-11 h-6 bg-slate-300 rounded-full peer peer-checked:bg-indigo-500
+                         peer-focus:ring-2 peer-focus:ring-indigo-400
+                         dark:bg-slate-700 dark:peer-checked:bg-indigo-600
+                         transition-colors duration-300"
+                >
+                </div>
+                <span
+                  class="absolute left-[2px] top-[2px] h-5 w-5 rounded-full bg-white
+                         transition-transform duration-300 peer-checked:translate-x-5
+                         dark:bg-slate-200"
+                ></span>
+              </label>
+            </label>
           </form>
         </div>
       </div>
@@ -185,6 +213,7 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
               first_edition,
               holographic,
               missing,
+              extra,
               notes,
             } = data;
             const searchText = [name, collection_name, number, notes]
@@ -199,8 +228,9 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
                 data-search={searchText}
                 data-ts={ts}
                 data-missing={missing ? "1" : "0"}
+                data-extra={extra ? "1" : "0"}
               >
-                {/* Media (click to zoom) */}
+                {/* Media */}
                 <div class="flex w-full md:w-[28rem] items-center justify-center bg-slate-100 p-4 dark:bg-slate-950/40">
                   {image ? (
                     <button
@@ -227,13 +257,10 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
                 {/* Meta */}
                 <div class="flex flex-1 flex-col justify-between p-4 md:p-5">
                   <div class="space-y-2">
-                    {/* Title + badges on same row */}
                     <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <h2 class="text-xl font-semibold tracking-tight">
                         {name}
                       </h2>
-
-                      {/* badges aligned right*/}
                       <div class="flex flex-wrap gap-2 justify-start sm:justify-end">
                         {first_edition && (
                           <span
@@ -257,6 +284,14 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
                            dark:border-red-900/60 dark:bg-red-950/40 dark:text-grey-100"
                           >
                             🔎 Missing
+                          </span>
+                        )}
+                        {extra && (
+                          <span
+                            class="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-2 py-1 text-xs font-medium text-purple-800
+                           dark:border-purple-900/60 dark:bg-purple-950/40 dark:text-purple-200"
+                          >
+                            🧩 Extra
                           </span>
                         )}
                       </div>
@@ -314,105 +349,39 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
       </div>
     </main>
 
-    <!-- Zoom Modal -->
-    <div
-      id="zoomModal"
-      class="fixed inset-0 z-50 hidden items-center justify-center p-3 md:p-6"
-      aria-hidden="true"
-    >
-      <!-- Backdrop -->
-      <div
-        id="zoomBackdrop"
-        class="absolute inset-0 bg-black/80 backdrop-blur-sm"
-      >
-      </div>
-
-      <!-- Dialog -->
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="zoomTitle"
-        class="relative mx-auto w-full max-w-5xl rounded-xl border border-white/10 bg-white/95 p-3 shadow-2xl outline-none backdrop-blur-md dark:border-white/10 dark:bg-slate-900/95"
-        tabindex="-1"
-      >
-        <button
-          type="button"
-          id="zoomClose"
-          class="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200/70 bg-white/80 text-slate-700 shadow-sm backdrop-blur
-                 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400
-                 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-800"
-          aria-label="Close image"
-        >
-          ✕
-        </button>
-
-        <figure class="mt-7 flex flex-col items-center gap-3 md:mt-2">
-          <img
-            id="zoomImg"
-            src=""
-            alt=""
-            class="max-h-[80vh] w-full object-contain select-none"
-            draggable="false"
-          />
-          <figcaption
-            id="zoomTitle"
-            class="text-center text-xs text-slate-600 dark:text-slate-400"
-          >
-          </figcaption>
-
-          <!-- Simple zoom controls (optional) -->
-          <div class="mt-1 hidden gap-2 md:flex">
-            <button
-              type="button"
-              data-zoom-in
-              class="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800"
-              >Zoom in</button
-            >
-            <button
-              type="button"
-              data-zoom-out
-              class="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800"
-              >Zoom out</button
-            >
-            <button
-              type="button"
-              data-zoom-reset
-              class="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800"
-              >Reset</button
-            >
-          </div>
-        </figure>
-      </div>
-    </div>
-
     <!-- Scripts -->
     <script type="module">
-      // ===== Filters (unchanged) =====
       const $ = (s) => document.querySelector(s);
       const $$ = (s) => Array.from(document.querySelectorAll(s));
       const list = $("#list");
       const empty = $("#empty");
       const collection = $("#collection");
       const missingToggle = $("#missingToggle");
-      let showMissingOnly = false;
+      const extraToggle = $("#extraToggle");
       const q = $("#q");
       const sort = $("#sort");
+      let showMissingOnly = false;
+      let showExtra = false; // off = hide extras
 
       function apply() {
         const coll = collection.value.trim().toLowerCase();
         const query = q.value.trim().toLowerCase();
-        const items = $$(".group.rounded-xl, .group.flex"); // account for grouping classes
+        const items = $$(".group.rounded-xl, .group.flex");
         let visible = [];
 
         for (const el of items) {
           const elColl = (el.getAttribute("data-coll") || "").toLowerCase();
           const elMissing = el.getAttribute("data-missing") || "0";
-
+          const elExtra = el.getAttribute("data-extra") || "0";
           const blob = el.getAttribute("data-search") || "";
+
           const passColl = !coll || elColl === coll;
           const passQuery = !query || blob.includes(query);
           const passMissing = !showMissingOnly || elMissing === "1";
-          if (passColl && passQuery && passMissing) {
+          // Hide extras unless toggle is on
+          const passExtra = showExtra ? true : elExtra !== "1";
+
+          if (passColl && passQuery && passMissing && passExtra) {
             el.classList.remove("hidden");
             visible.push(el);
           } else {
@@ -420,31 +389,26 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
           }
         }
 
-        // Sort by release_date timestamp
         visible.sort((a, b) => {
           const ta = Number(a.getAttribute("data-ts")) || 0;
           const tb = Number(b.getAttribute("data-ts")) || 0;
-          // Unknown dates (0) should go LAST in both directions
-          const rank = (t, dir) => {
-            if (t === 0)
-              return dir === "asc"
+          const rank = (t, dir) =>
+            t === 0
+              ? dir === "asc"
                 ? Number.POSITIVE_INFINITY
-                : Number.NEGATIVE_INFINITY;
-            return t;
-          };
-
-          const dir = sort.value; // "asc" | "desc"
-          const ra = rank(ta, dir);
-          const rb = rank(tb, dir);
-
-          return dir === "asc" ? ra - rb : rb - ra;
+                : Number.NEGATIVE_INFINITY
+              : t;
+          const dir = sort.value;
+          return dir === "asc"
+            ? rank(ta, dir) - rank(tb, dir)
+            : rank(tb, dir) - rank(ta, dir);
         });
 
         visible.forEach((el) => list.appendChild(el));
         empty.classList.toggle("hidden", visible.length > 0);
       }
 
-      // Dark mode toggle
+      // Event listeners
       const btn = document.getElementById("themeToggle");
       btn?.addEventListener("click", () => {
         const html = document.documentElement;
@@ -457,87 +421,13 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
         showMissingOnly = missingToggle.checked;
         apply();
       });
+      extraToggle.addEventListener("change", () => {
+        showExtra = extraToggle.checked;
+        apply();
+      });
       q.addEventListener("input", apply);
       sort.addEventListener("change", apply);
       apply();
-
-      // ===== Zoom Modal =====
-      const modal = $("#zoomModal");
-      const modalDialog = modal?.querySelector('[role="dialog"]');
-      const backdrop = $("#zoomBackdrop");
-      const closeBtn = $("#zoomClose");
-      const zoomImg = $("#zoomImg");
-      const zoomTitle = $("#zoomTitle");
-      let lastFocused = null;
-      let scale = 1;
-
-      function openModal(src, alt) {
-        if (!modal) return;
-        lastFocused = document.activeElement;
-        zoomImg.src = src;
-        zoomImg.alt = alt || "";
-        zoomTitle.textContent = alt || "";
-        scale = 1;
-        zoomImg.style.transform = "scale(1)";
-
-        modal.classList.remove("hidden");
-        modal.setAttribute("aria-hidden", "false");
-        document.body.classList.add("overflow-hidden"); // lock scroll
-        modalDialog?.focus();
-      }
-
-      function closeModal() {
-        if (!modal) return;
-        modal.classList.add("hidden");
-        modal.setAttribute("aria-hidden", "true");
-        document.body.classList.remove("overflow-hidden");
-        zoomImg.src = "";
-        if (lastFocused && lastFocused.focus) lastFocused.focus();
-      }
-
-      // Delegate clicks from any image button
-      list.addEventListener("click", (e) => {
-        const btn = e.target.closest("[data-zoom-src]");
-        if (!btn) return;
-        const src = btn.getAttribute("data-zoom-src");
-        const alt = btn.getAttribute("data-zoom-alt") || "";
-        if (src) openModal(src, alt);
-      });
-
-      // Close interactions
-      backdrop?.addEventListener("click", closeModal);
-      closeBtn?.addEventListener("click", closeModal);
-      window.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") closeModal();
-      });
-
-      // Simple zoom controls (optional)
-      modal.addEventListener("click", (e) => {
-        const inc = e.target.hasAttribute("data-zoom-in");
-        const dec = e.target.hasAttribute("data-zoom-out");
-        const reset = e.target.hasAttribute("data-zoom-reset");
-        if (!(inc || dec || reset)) return;
-
-        if (reset) scale = 1;
-        else scale = Math.max(1, Math.min(6, scale + (inc ? 0.25 : -0.25)));
-
-        zoomImg.style.transform = `scale(${scale})`;
-        zoomImg.style.transformOrigin = "center center";
-      });
-
-      // Wheel to zoom (desktop)
-      modal.addEventListener(
-        "wheel",
-        (e) => {
-          if (modal.classList.contains("hidden")) return;
-          e.preventDefault();
-          const delta = Math.sign(e.deltaY);
-          scale = Math.max(1, Math.min(6, scale - delta * 0.15));
-          zoomImg.style.transform = `scale(${scale})`;
-          zoomImg.style.transformOrigin = "center center";
-        },
-        { passive: false }
-      );
     </script>
   </body>
 </html>

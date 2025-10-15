@@ -10,6 +10,7 @@ const cards = defineCollection({
     image: z.string().optional(),
     first_edition: z.boolean().optional(),
     holographic: z.boolean().optional(),
+    extra: z.boolean().optional(),
     missing: z.boolean().optional(),
     notes: z.string().optional(),
   }),
