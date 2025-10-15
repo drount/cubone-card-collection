@@ -10,7 +10,7 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
   .sort();
 ---
 
-<html lang="en" class="h-full dark">
+<html lang="en" class="dark">
   <head>
     <meta charset="utf-8" />
     <title>All Cubone Cards</title>
@@ -29,10 +29,10 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
   </head>
 
   <body
-    class="h-full bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100"
+    class="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100"
   >
     <!-- Top hero -->
-    <header class="relative isolate overflow-hidden">
+    <header class="relative isolate">
       <div
         aria-hidden="true"
         class="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-indigo-50 via-transparent to-transparent dark:from-indigo-900/30"
@@ -76,74 +76,90 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
           collection name (e.g. English vs. Japanese)
         </p>
       </div>
+    </header>
 
-      <!-- Sticky glass controls -->
-      <div
-        class="sticky top-0 z-20 border-y border-slate-200/70 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/50 dark:border-slate-800/70 dark:bg-slate-900/60"
-      >
-        <div class="max-w-6xl mx-auto px-4">
-          <form
-            id="controls"
-            class="grid grid-cols-1 md:grid-cols-5 gap-3 py-3 items-end"
-            onsubmit="event.preventDefault()"
+    <!-- Sticky glass controls (mobile-collapsible) -->
+    <div
+      class="sticky top-0 z-20 border-y border-slate-200/70 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/50 dark:border-slate-800/70 dark:bg-slate-900/60"
+    >
+      <div class="max-w-6xl mx-auto px-4">
+        <!-- Mobile compact bar -->
+        <div class="flex items-center justify-between py-3 md:hidden">
+          <button
+            id="filtersToggle"
+            type="button"
+            aria-expanded="false"
+            class="inline-flex items-center gap-2 rounded-md border border-slate-300/70 bg-white/80 px-3 py-2 text-sm shadow-sm backdrop-blur hover:bg-white dark:border-slate-700 dark:bg-slate-800/80"
           >
-            <!-- Filter: Collection -->
-            <label class="flex flex-col gap-1">
-              <span
-                class="text-xs font-medium text-slate-600 dark:text-slate-300"
-                >Collection</span
-              >
-              <select
-                id="collection"
-                name="collection"
-                class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400 dark:border-slate-700 dark:bg-slate-800"
-              >
-                <option value="">All collections</option>
-                {
-                  collectionNames.map((name) => (
-                    <option value={name}>{name}</option>
-                  ))
-                }
-              </select>
-            </label>
+            <span>Filters</span>
+            <span aria-hidden="true">▼</span>
+          </button>
+        </div>
 
-            <!-- Search: Notes/description -->
-            <label class="flex flex-col gap-1">
-              <span
-                class="text-xs font-medium text-slate-600 dark:text-slate-300"
-                >Search description</span
-              >
-              <input
-                id="q"
-                name="q"
-                type="search"
-                placeholder="e.g. holo, first edition, PSA..."
-                class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400 dark:border-slate-700 dark:bg-slate-800"
-              />
-            </label>
+        <form
+          +
+          id="controls"
+          +
+          class="hidden md:grid grid-cols-1 md:grid-cols-5 gap-3 py-4 md:py-3 items-end space-y-3 md:space-y-0"
+          onsubmit="event.preventDefault()"
+        >
+          <!-- Filter: Collection -->
+          <label class="flex flex-col gap-1">
+            <span class="text-xs font-medium text-slate-600 dark:text-slate-300"
+              >Collection</span
+            >
+            <select
+              id="collection"
+              name="collection"
+              class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400 dark:border-slate-700 dark:bg-slate-800"
+            >
+              <option value="">All collections</option>
+              {
+                collectionNames.map((name) => (
+                  <option value={name}>{name}</option>
+                ))
+              }
+            </select>
+          </label>
 
-            <!-- Sort: Release date -->
-            <label class="flex flex-col gap-1">
-              <span
-                class="text-xs font-medium text-slate-600 dark:text-slate-300"
-                >Sort by release date</span
-              >
-              <select
-                id="sort"
-                name="sort"
-                class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400 dark:border-slate-700 dark:bg-slate-800"
-              >
-                <option value="desc">Newest → Oldest</option>
-                <option value="asc">Oldest → Newest</option>
-              </select>
-            </label>
+          <!-- Search: Notes/description -->
+          <label class="flex flex-col gap-1">
+            <span class="text-xs font-medium text-slate-600 dark:text-slate-300"
+              >Search description</span
+            >
+            <input
+              id="q"
+              name="q"
+              type="search"
+              placeholder="e.g. holo, first edition, PSA..."
+              class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400 dark:border-slate-700 dark:bg-slate-800"
+            />
+          </label>
 
+          <!-- Sort: Release date -->
+          <label class="flex flex-col gap-1">
+            <span class="text-xs font-medium text-slate-600 dark:text-slate-300"
+              >Sort by release date</span
+            >
+            <select
+              id="sort"
+              name="sort"
+              class="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400 dark:border-slate-700 dark:bg-slate-800"
+            >
+              <option value="desc">Newest → Oldest</option>
+              <option value="asc">Oldest → Newest</option>
+            </select>
+          </label>
+
+          <!-- Toggles row -->
+          <div class="flex flex-row gap-4">
             <!-- Toggle: Missing only -->
-            <label class="flex flex-col gap-2">
+            <label class="flex flex-col gap-1 flex-1">
               <span
                 class="text-xs font-medium text-slate-600 dark:text-slate-300"
-                >Missing only</span
               >
+                Missing only
+              </span>
               <label
                 class="relative inline-flex items-center cursor-pointer align-middle max-h-full"
               >
@@ -154,21 +170,21 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
                 />
                 <div
                   class="w-11 h-6 bg-slate-300 rounded-full peer peer-checked:bg-indigo-500
-             peer-focus:ring-2 peer-focus:ring-indigo-400
-             dark:bg-slate-700 dark:peer-checked:bg-indigo-600
-             transition-colors duration-300"
+               peer-focus:ring-2 peer-focus:ring-indigo-400
+               dark:bg-slate-700 dark:peer-checked:bg-indigo-600
+               transition-colors duration-300"
                 >
                 </div>
                 <span
                   class="absolute left-[2px] top-[2px] h-5 w-5 rounded-full bg-white
-             transition-transform duration-300 peer-checked:translate-x-5
-             dark:bg-slate-200"
+               transition-transform duration-300 peer-checked:translate-x-5
+               dark:bg-slate-200"
                 ></span>
               </label>
             </label>
 
             <!-- Toggle: Show extras -->
-            <label class="flex flex-col gap-2">
+            <label class="flex flex-col gap-1 flex-1">
               <span
                 class="text-xs font-medium text-slate-600 dark:text-slate-300"
               >
@@ -180,22 +196,22 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
                 <input type="checkbox" id="extraToggle" class="sr-only peer" />
                 <div
                   class="w-11 h-6 bg-slate-300 rounded-full peer peer-checked:bg-indigo-500
-                         peer-focus:ring-2 peer-focus:ring-indigo-400
-                         dark:bg-slate-700 dark:peer-checked:bg-indigo-600
-                         transition-colors duration-300"
+               peer-focus:ring-2 peer-focus:ring-indigo-400
+               dark:bg-slate-700 dark:peer-checked:bg-indigo-600
+               transition-colors duration-300"
                 >
                 </div>
                 <span
                   class="absolute left-[2px] top-[2px] h-5 w-5 rounded-full bg-white
-                         transition-transform duration-300 peer-checked:translate-x-5
-                         dark:bg-slate-200"
+               transition-transform duration-300 peer-checked:translate-x-5
+               dark:bg-slate-200"
                 ></span>
               </label>
             </label>
-          </form>
-        </div>
+          </div>
+        </form>
       </div>
-    </header>
+    </div>
 
     <!-- Content -->
     <main class="max-w-6xl mx-auto px-4 py-4 space-y-3">
@@ -367,6 +383,8 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
       const q = $("#q");
       const sort = $("#sort");
       const resultCount = $("#resultCount");
+      const filtersToggle = $("#filtersToggle");
+      const controlsForm = $("#controls");
       let showMissingOnly = false;
       let showExtra = false; // off = hide extras
 
@@ -415,13 +433,13 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
         visible.forEach((el) => list.appendChild(el));
         empty.classList.toggle("hidden", visible.length > 0);
 
-        // ✅ Update counter
+        // Update counter
         resultCount.textContent = `Showing ${visible.length} card${
           visible.length === 1 ? "" : "s"
         }`;
       }
 
-      // Event listeners
+      // Theme toggle
       const btn = document.getElementById("themeToggle");
       btn?.addEventListener("click", () => {
         const html = document.documentElement;
@@ -429,6 +447,7 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
         localStorage.setItem("theme", next);
       });
 
+      // Filters logic
       collection.addEventListener("change", apply);
       missingToggle.addEventListener("change", () => {
         showMissingOnly = missingToggle.checked;
@@ -441,6 +460,32 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
       q.addEventListener("input", apply);
       sort.addEventListener("change", apply);
       apply();
+
+      // Mobile: toggle filters panel
+      filtersToggle?.addEventListener("click", () => {
+        const wasHidden = controlsForm.classList.contains("hidden");
+        if (wasHidden) {
+          controlsForm.classList.remove("hidden");
+          controlsForm.classList.add("block"); // ensure visible on mobile
+        } else {
+          controlsForm.classList.add("hidden");
+          controlsForm.classList.remove("block");
+        }
+        const open = String(wasHidden);
+        filtersToggle.setAttribute("aria-expanded", open);
+        const caret = filtersToggle.querySelector('span[aria-hidden="true"]');
+        if (caret) caret.textContent = wasHidden ? "▲" : "▼";
+      });
+
+      // Keep form visible on desktop, collapsed on mobile when closed
+      window.addEventListener("resize", () => {
+        if (window.matchMedia("(min-width: 768px)").matches) {
+          controlsForm.classList.remove("hidden", "block");
+        } else if (filtersToggle?.getAttribute("aria-expanded") !== "true") {
+          controlsForm.classList.add("hidden");
+          controlsForm.classList.remove("block");
+        }
+      });
     </script>
   </body>
 </html>
