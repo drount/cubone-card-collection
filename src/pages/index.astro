@@ -258,7 +258,7 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
                     <button
                       type="button"
                       class="block w-full"
-                      data-zoom-src={"." + image}
+                      data-zoom-src={image}
                       data-zoom-alt={name}
                       aria-label={`Zoom image of ${name}`}
                     >
@@ -370,6 +370,47 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
         </p>
       </div>
     </main>
+
+    <!-- Image Modal -->
+    <div
+      id="imgModal"
+      class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-black/80 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="imgModalLabel"
+    >
+      <div
+        class="max-w-5xl w-full flex flex-col items-center justify-center"
+        role="document"
+      >
+        <figure
+          class="relative rounded-xl bg-slate-900 p-2 shadow-lg border border-slate-700/60 flex flex-col items-center"
+        >
+          <!-- Close button (top-right, near image) -->
+          <button
+            id="imgModalClose"
+            type="button"
+            aria-label="Close image"
+            class="absolute top-2 right-2 z-10 rounded-full border border-slate-700/60 bg-slate-900/70 px-3 py-2 text-sm
+               shadow-sm backdrop-blur hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          >
+            ✕
+          </button>
+
+          <img
+            id="imgModalImg"
+            alt=""
+            class="mx-auto max-h-[80vh] w-auto object-contain"
+            decoding="async"
+          />
+          <figcaption
+            id="imgModalLabel"
+            class="mt-2 text-center text-sm text-slate-300"
+          >
+          </figcaption>
+        </figure>
+      </div>
+    </div>
 
     <!-- Scripts -->
     <script type="module">
@@ -485,6 +526,55 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
           controlsForm.classList.add("hidden");
           controlsForm.classList.remove("block");
         }
+      });
+      // ---------- IMAGE MODAL ----------
+      const modal = document.getElementById("imgModal");
+      const modalImg = document.getElementById("imgModalImg");
+      const modalLabel = document.getElementById("imgModalLabel");
+      const modalClose = document.getElementById("imgModalClose");
+      let lastFocused = null;
+
+      // Open modal
+      function openImgModal(src, alt, trigger) {
+        lastFocused = trigger || document.activeElement;
+
+        modalImg.src = src;
+        modalImg.alt = alt || "";
+        modalLabel.textContent = alt || "";
+
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+        document.body.classList.add("overflow-hidden");
+        modalClose.focus();
+      }
+
+      // Close modal
+      function closeImgModal() {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+        document.body.classList.remove("overflow-hidden");
+        modalImg.removeAttribute("src");
+        modalLabel.textContent = "";
+        if (lastFocused) lastFocused.focus();
+      }
+
+      // Wire buttons
+      $$("button[data-zoom-src]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const src = btn.getAttribute("data-zoom-src");
+          const alt = btn.getAttribute("data-zoom-alt") || "";
+          if (src) openImgModal(src, alt, btn);
+        });
+      });
+
+      // Close actions
+      modalClose.addEventListener("click", closeImgModal);
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) closeImgModal(); // click backdrop
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !modal.classList.contains("hidden"))
+          closeImgModal();
       });
     </script>
   </body>
