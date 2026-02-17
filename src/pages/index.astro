@@ -51,18 +51,33 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
             </p>
           </div>
 
-          <!-- Dark mode toggle -->
-          <button
-            id="themeToggle"
-            class="inline-flex items-center gap-2 rounded-full border border-slate-300/70 bg-white/80 px-3 py-2 text-sm shadow-sm backdrop-blur
-                   hover:bg-white dark:border-slate-700 dark:bg-slate-900/80 dark:hover:bg-slate-900"
-            type="button"
-            aria-label="Toggle dark mode"
-          >
-            <span class="hidden sm:inline">Theme</span>
-            <span class="block dark:hidden">🌙</span>
-            <span class="hidden dark:inline">☀️</span>
-          </button>
+          <!-- View and Dark mode toggles -->
+          <div class="flex items-center gap-2">
+            <!-- View toggle -->
+            <button
+              id="viewToggle"
+              class="inline-flex items-center gap-2 rounded-full border border-slate-300/70 bg-white/80 px-3 py-2 text-sm shadow-sm backdrop-blur
+                     hover:bg-white dark:border-slate-700 dark:bg-slate-900/80 dark:hover:bg-slate-900"
+              type="button"
+              aria-label="Toggle view mode"
+            >
+              <span class="hidden sm:inline">View</span>
+              <span id="viewIcon">⊞</span>
+            </button>
+
+            <!-- Dark mode toggle -->
+            <button
+              id="themeToggle"
+              class="inline-flex items-center gap-2 rounded-full border border-slate-300/70 bg-white/80 px-3 py-2 text-sm shadow-sm backdrop-blur
+                     hover:bg-white dark:border-slate-700 dark:bg-slate-900/80 dark:hover:bg-slate-900"
+              type="button"
+              aria-label="Toggle dark mode"
+            >
+              <span class="hidden sm:inline">Theme</span>
+              <span class="block dark:hidden">🌙</span>
+              <span class="hidden dark:inline">☀️</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -224,8 +239,9 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
       >
         Showing 0 cards
       </div>
-      <!-- Cards -->
-      <div id="list" class="space-y-4">
+
+      <!-- Cards Container -->
+      <div id="cardsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {
           cards.map(({ slug, data }) => {
             const {
@@ -246,7 +262,7 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
             const ts = release_date.getTime();
             return (
               <article
-                class="group flex flex-col md:flex-row items-stretch rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
+                class="card-item group rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-lg dark:border-slate-800 dark:bg-slate-900 overflow-hidden"
                 data-coll={collection_name}
                 data-date={release_date}
                 data-search={searchText}
@@ -254,104 +270,174 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
                 data-missing={missing ? "1" : "0"}
                 data-extra={extra ? "1" : "0"}
               >
-                {/* Media */}
-                <div class="flex w-full md:w-[28rem] items-center justify-center bg-slate-100 p-4 dark:bg-slate-950/40">
-                  {image ? (
-                    <button
-                      type="button"
-                      class="block w-full"
-                      data-zoom-src={image}
-                      data-zoom-alt={name}
-                      aria-label={`Zoom image of ${name}`}
-                    >
-                      <img
-                        src={image}
-                        alt={name}
-                        loading="lazy"
-                        class="w-full max-w-full max-h-[22rem] object-contain cursor-zoom-in transition-transform duration-300 hover:scale-[1.01]"
-                      />
-                    </button>
-                  ) : (
-                    <div class="flex h-60 w-full items-center justify-center text-slate-500">
-                      No image
+                {/* Grid content - shown in grid view */}
+                <div class="grid-content">
+                  {/* Image with badges */}
+                  <div class="relative flex items-center justify-center bg-slate-100 p-3 dark:bg-slate-950/40 aspect-[3/4]">
+                    {image ? (
+                      <button
+                        type="button"
+                        class="block w-full h-full"
+                        data-zoom-src={image}
+                        data-zoom-alt={name}
+                        aria-label={`Zoom image of ${name}`}
+                      >
+                        <img
+                          src={image}
+                          alt={name}
+                          loading="lazy"
+                          class="w-full h-full object-contain cursor-zoom-in transition-transform duration-300 hover:scale-105"
+                        />
+                      </button>
+                    ) : (
+                      <div class="flex h-full w-full items-center justify-center text-slate-400 text-sm">
+                        No image
+                      </div>
+                    )}
+                    {/* Status badges overlay */}
+                    <div class="absolute top-2 right-2 flex flex-col gap-1">
+                      {missing && (
+                        <span class="inline-flex items-center justify-center rounded-full bg-red-500/90 backdrop-blur-sm w-8 h-8 text-base" title="Missing">
+                          🔎
+                        </span>
+                      )}
+                      {extra && (
+                        <span class="inline-flex items-center justify-center rounded-full bg-purple-500/90 backdrop-blur-sm w-8 h-8 text-base" title="Extra">
+                          🧩
+                        </span>
+                      )}
+                      {holographic && (
+                        <span class="inline-flex items-center justify-center rounded-full bg-yellow-500/90 backdrop-blur-sm w-8 h-8 text-base" title="Holographic">
+                          ✨
+                        </span>
+                      )}
+                      {first_edition && (
+                        <span class="inline-flex items-center justify-center rounded-full bg-blue-500/90 backdrop-blur-sm w-8 h-8 text-base" title="First Edition">
+                          🥇
+                        </span>
+                      )}
                     </div>
-                  )}
+                  </div>
+
+                  {/* Card info */}
+                  <div class="p-3 space-y-1">
+                    <h2 class="text-sm font-semibold tracking-tight truncate" title={name}>
+                      {name}
+                    </h2>
+                    <p class="text-xs text-slate-600 dark:text-slate-400">
+                      #{number}
+                    </p>
+                    {notes && (
+                      <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2" title={notes}>
+                        {notes}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                {/* Meta */}
-                <div class="flex flex-1 flex-col justify-between p-4 md:p-5">
-                  <div class="space-y-2">
-                    <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <h2 class="text-xl font-semibold tracking-tight">
-                        {name}
-                      </h2>
-                      <div class="flex flex-wrap gap-2 justify-start sm:justify-end">
-                        {first_edition && (
-                          <span
-                            class="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-medium text-blue-800
-                           dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-200"
-                          >
-                            🥇 First Edition
+                {/* List content - shown in list view */}
+                <div class="list-content hidden">
+                  <div class="flex flex-col md:flex-row items-stretch">
+                    {/* Media */}
+                    <div class="flex w-full md:w-[28rem] items-center justify-center bg-slate-100 p-4 dark:bg-slate-950/40">
+                      {image ? (
+                        <button
+                          type="button"
+                          class="block w-full"
+                          data-zoom-src={image}
+                          data-zoom-alt={name}
+                          aria-label={`Zoom image of ${name}`}
+                        >
+                          <img
+                            src={image}
+                            alt={name}
+                            loading="lazy"
+                            class="w-full max-w-full max-h-[22rem] object-contain cursor-zoom-in transition-transform duration-300 hover:scale-[1.01]"
+                          />
+                        </button>
+                      ) : (
+                        <div class="flex h-60 w-full items-center justify-center text-slate-500">
+                          No image
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Meta */}
+                    <div class="flex flex-1 flex-col justify-between p-4 md:p-5">
+                      <div class="space-y-2">
+                        <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <h2 class="text-xl font-semibold tracking-tight">
+                            {name}
+                          </h2>
+                          <div class="flex flex-wrap gap-2 justify-start sm:justify-end">
+                            {first_edition && (
+                              <span
+                                class="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-medium text-blue-800
+                               dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-200"
+                              >
+                                🥇 First Edition
+                              </span>
+                            )}
+                            {holographic && (
+                              <span
+                                class="inline-flex items-center gap-1 rounded-full border border-yellow-200 bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800
+                               dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200"
+                              >
+                                ✨ Holographic
+                              </span>
+                            )}
+                            {missing && (
+                              <span
+                                class="inline-flex items-center gap-1 rounded-full border border-red-900 bg-red-50 px-2 py-1 text-xs font-medium text-grey-800
+                               dark:border-red-900/60 dark:bg-red-950/40 dark:text-grey-100"
+                              >
+                                🔎 Missing
+                              </span>
+                            )}
+                            {extra && (
+                              <span
+                                class="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-2 py-1 text-xs font-medium text-purple-800
+                               dark:border-purple-900/60 dark:bg-purple-950/40 dark:text-purple-200"
+                              >
+                                🧩 Extra
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <p class="text-sm text-slate-600 dark:text-slate-300">
+                          <span class="font-medium text-slate-800 dark:text-slate-200">
+                            #{number}
                           </span>
-                        )}
-                        {holographic && (
-                          <span
-                            class="inline-flex items-center gap-1 rounded-full border border-yellow-200 bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800
-                           dark:border-yellow-900/60 dark:bg-yellow-950/40 dark:text-yellow-200"
-                          >
-                            ✨ Holographic
+                          <span class="mx-2 text-slate-300 dark:text-slate-600">
+                            •
                           </span>
-                        )}
-                        {missing && (
-                          <span
-                            class="inline-flex items-center gap-1 rounded-full border border-red-900 bg-red-50 px-2 py-1 text-xs font-medium text-grey-800
-                           dark:border-red-900/60 dark:bg-red-950/40 dark:text-grey-100"
-                          >
-                            🔎 Missing
+                          {collection_name || (
+                            <span class="italic text-slate-400">No collection</span>
+                          )}
+                          <span class="mx-2 text-slate-300 dark:text-slate-600">
+                            •
                           </span>
-                        )}
-                        {extra && (
-                          <span
-                            class="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-2 py-1 text-xs font-medium text-purple-800
-                           dark:border-purple-900/60 dark:bg-purple-950/40 dark:text-purple-200"
-                          >
-                            🧩 Extra
-                          </span>
+                          {data.release_date ? (
+                            new Date(data.release_date).toLocaleDateString(
+                              "en-US",
+                              {
+                                year: "numeric",
+                                month: "short",
+                              }
+                            )
+                          ) : (
+                            <span class="italic text-slate-400">Unknown date</span>
+                          )}
+                        </p>
+
+                        {notes && (
+                          <p class="text-sm leading-relaxed text-slate-700 dark:text-slate-300/90">
+                            {notes.length > 220 ? notes.slice(0, 220) + "…" : notes}
+                          </p>
                         )}
                       </div>
                     </div>
-
-                    <p class="text-sm text-slate-600 dark:text-slate-300">
-                      <span class="font-medium text-slate-800 dark:text-slate-200">
-                        #{number}
-                      </span>
-                      <span class="mx-2 text-slate-300 dark:text-slate-600">
-                        •
-                      </span>
-                      {collection_name || (
-                        <span class="italic text-slate-400">No collection</span>
-                      )}
-                      <span class="mx-2 text-slate-300 dark:text-slate-600">
-                        •
-                      </span>
-                      {data.release_date ? (
-                        new Date(data.release_date).toLocaleDateString(
-                          "en-US",
-                          {
-                            year: "numeric",
-                            month: "short",
-                          }
-                        )
-                      ) : (
-                        <span class="italic text-slate-400">Unknown date</span>
-                      )}
-                    </p>
-
-                    {notes && (
-                      <p class="text-sm leading-relaxed text-slate-700 dark:text-slate-300/90">
-                        {notes.length > 220 ? notes.slice(0, 220) + "…" : notes}
-                      </p>
-                    )}
                   </div>
                 </div>
               </article>
@@ -418,7 +504,7 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
     <script type="module">
       const $ = (s) => document.querySelector(s);
       const $$ = (s) => Array.from(document.querySelectorAll(s));
-      const list = $("#list");
+      const cardsContainer = $("#cardsContainer");
       const empty = $("#empty");
       const collection = $("#collection");
       const missingToggle = $("#missingToggle");
@@ -428,13 +514,50 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
       const resultCount = $("#resultCount");
       const filtersToggle = $("#filtersToggle");
       const controlsForm = $("#controls");
+      const viewToggle = $("#viewToggle");
+      const viewIcon = $("#viewIcon");
+
       let showMissingOnly = false;
       let showExtra = false; // off = hide extras
+      let currentView = localStorage.getItem("cardView") || "grid";
+
+      // Initialize view
+      function setView(view) {
+        currentView = view;
+        localStorage.setItem("cardView", view);
+
+        const gridContents = $$(".grid-content");
+        const listContents = $$(".list-content");
+
+        if (view === "grid") {
+          // Show grid layout
+          cardsContainer.classList.add("grid", "grid-cols-1", "sm:grid-cols-2", "lg:grid-cols-3", "xl:grid-cols-4", "gap-4");
+          cardsContainer.classList.remove("space-y-4");
+
+          // Show grid content, hide list content
+          gridContents.forEach(el => el.classList.remove("hidden"));
+          listContents.forEach(el => el.classList.add("hidden"));
+
+          viewIcon.textContent = "☰"; // Show list icon when in grid view
+        } else {
+          // Show list layout
+          cardsContainer.classList.remove("grid", "grid-cols-1", "sm:grid-cols-2", "lg:grid-cols-3", "xl:grid-cols-4", "gap-4");
+          cardsContainer.classList.add("space-y-4");
+
+          // Show list content, hide grid content
+          gridContents.forEach(el => el.classList.add("hidden"));
+          listContents.forEach(el => el.classList.remove("hidden"));
+
+          viewIcon.textContent = "⊞"; // Show grid icon when in list view
+        }
+
+        apply();
+      }
 
       function apply() {
         const coll = collection.value.trim().toLowerCase();
         const query = q.value.trim().toLowerCase();
-        const items = $$(".group.rounded-xl, .group.flex");
+        const items = $$(".card-item");
         let visible = [];
 
         for (const el of items) {
@@ -473,7 +596,8 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
             : rank(tb, dir) - rank(ta, dir);
         });
 
-        visible.forEach((el) => list.appendChild(el));
+        // Append to container
+        visible.forEach((el) => cardsContainer.appendChild(el));
         empty.classList.toggle("hidden", visible.length > 0);
 
         // Update counter
@@ -481,6 +605,11 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
           visible.length === 1 ? "" : "s"
         }`;
       }
+
+      // View toggle
+      viewToggle?.addEventListener("click", () => {
+        setView(currentView === "grid" ? "list" : "grid");
+      });
 
       // Theme toggle
       const btn = document.getElementById("themeToggle");
@@ -502,7 +631,9 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
       });
       q.addEventListener("input", apply);
       sort.addEventListener("change", apply);
-      apply();
+
+      // Initialize view and apply filters
+      setView(currentView);
 
       // Mobile: toggle filters panel
       filtersToggle?.addEventListener("click", () => {
