@@ -16,4 +16,18 @@ const cards = defineCollection({
   }),
 });
 
-export const collections = { cards };
+const artworks = defineCollection({
+  type: "content",
+  schema: z.object({
+    name: z.string(),
+    head_artwork: z.string(), // slug of the head artwork card
+    grouped_artworks: z.array(
+      z.union([
+        z.string(), // Support plain string format
+        z.object({ card: z.string() }), // Support Decap CMS object format
+      ])
+    ),
+  }),
+});
+
+export const collections = { cards, artworks };

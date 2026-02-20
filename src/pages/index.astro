@@ -3,6 +3,36 @@ import "../styles/global.css";
 import { getCollection } from "astro:content";
 
 const cards = await getCollection("cards");
+const artworks = await getCollection("artworks");
+
+// Build a set of card slugs that belong to any artwork
+const artworkCardSlugs = new Set<string>();
+// Map card slug to artwork info
+const cardToArtwork = new Map<string, { name: string; id: string; isHead: boolean }>();
+
+artworks.forEach((artwork) => {
+  const artworkId = artwork.slug;
+  const artworkName = artwork.data.name;
+
+  // Add head artwork
+  artworkCardSlugs.add(artwork.data.head_artwork);
+  cardToArtwork.set(artwork.data.head_artwork, {
+    name: artworkName,
+    id: artworkId,
+    isHead: true
+  });
+
+  // Add grouped artworks
+  artwork.data.grouped_artworks.forEach((item) => {
+    const slug = typeof item === 'string' ? item : item.card;
+    artworkCardSlugs.add(slug);
+    cardToArtwork.set(slug, {
+      name: artworkName,
+      id: artworkId,
+      isHead: false
+    });
+  });
+});
 
 // Unique collection names for the dropdown
 const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
@@ -466,6 +496,34 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
                 ></span>
               </label>
             </label>
+
+            <!-- Toggle: Artworks -->
+            <label class="flex flex-col gap-2 flex-1">
+              <span
+                class="text-xs font-semibold tracking-wider uppercase text-[var(--rust)] dark:text-[var(--ember)]"
+              >
+                Artworks
+              </span>
+              <label
+                class="relative inline-flex items-center cursor-pointer align-middle max-h-full"
+              >
+                <input type="checkbox" id="artworkToggle" class="sr-only peer" />
+                <div
+                  class="w-11 h-6 bg-[var(--warm-tan)]/50 border-2 border-[var(--warm-tan)] rounded-full peer
+                         peer-checked:bg-[var(--terracotta)] peer-checked:border-[var(--terracotta)]
+                         peer-focus:ring-2 peer-focus:ring-[var(--terracotta)]/30
+                         dark:bg-[var(--cave-stone)] dark:border-[var(--cave-stone)]
+                         dark:peer-checked:bg-[var(--ember)] dark:peer-checked:border-[var(--ember)]
+                         transition-all duration-300"
+                >
+                </div>
+                <span
+                  class="absolute left-[2px] top-[2px] h-5 w-5 rounded-full bg-[var(--bone-white)]
+                         shadow-sm transition-transform duration-300 peer-checked:translate-x-5
+                         dark:bg-[var(--moonlit-bone)]"
+                ></span>
+              </label>
+            </label>
           </div>
         </form>
       </div>
@@ -504,6 +562,7 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
               .join(" ")
               .toLowerCase();
             const ts = release_date.getTime();
+            const artworkInfo = cardToArtwork.get(slug);
             return (
               <article
                 class="card-item group border-2 border-[var(--warm-tan)]/40 bg-[var(--parchment)]/30 shadow-md transition-all duration-300
@@ -516,6 +575,10 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
                 data-ts={ts}
                 data-missing={missing ? "1" : "0"}
                 data-extra={extra ? "1" : "0"}
+                data-artwork={artworkCardSlugs.has(slug) ? "1" : "0"}
+                data-artwork-id={artworkInfo?.id || ""}
+                data-artwork-name={artworkInfo?.name || ""}
+                data-is-head={artworkInfo?.isHead ? "1" : "0"}
               >
                 {/* Grid content - shown in grid view */}
                 <div class="grid-content">
@@ -591,6 +654,20 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
                         #{number}
                       </span>
                     </div>
+                    <p class="text-xs text-[var(--earth-brown)] dark:text-[var(--warm-tan)]">
+                      {collection_name || (
+                        <span class="italic opacity-60">Unclassified</span>
+                      )}
+                      <span class="mx-1.5 opacity-50">•</span>
+                      {release_date ? (
+                        new Date(release_date).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                        })
+                      ) : (
+                        <span class="italic opacity-60">Date unknown</span>
+                      )}
+                    </p>
                     {notes && (
                       <p
                         class="text-sm leading-relaxed text-[var(--earth-brown)] dark:text-[var(--warm-tan)] line-clamp-2 italic"
@@ -792,6 +869,7 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
       const collection = $("#collection");
       const missingToggle = $("#missingToggle");
       const extraToggle = $("#extraToggle");
+      const artworkToggle = $("#artworkToggle");
       const q = $("#q");
       const sort = $("#sort");
       const resultCount = $("#resultCount");
@@ -802,7 +880,11 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
 
       let showMissingOnly = false;
       let showExtra = false; // off = hide extras
+      let showArtworkOnly = false;
       let currentView = localStorage.getItem("cardView") || "grid";
+
+      // Store all original card items once at initialization
+      const allCardItems = $$(".card-item");
 
       // Initialize view
       function setView(view) {
@@ -854,13 +936,14 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
       function apply() {
         const coll = collection.value.trim().toLowerCase();
         const query = q.value.trim().toLowerCase();
-        const items = $$(".card-item");
+        const items = allCardItems;
         let visible = [];
 
         for (const el of items) {
           const elColl = (el.getAttribute("data-coll") || "").toLowerCase();
           const elMissing = el.getAttribute("data-missing") || "0";
           const elExtra = el.getAttribute("data-extra") || "0";
+          const elArtwork = el.getAttribute("data-artwork") || "0";
           const blob = el.getAttribute("data-search") || "";
 
           const passColl = !coll || elColl === coll;
@@ -868,8 +951,10 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
           const passMissing = !showMissingOnly || elMissing === "1";
           // Hide extras unless toggle is on
           const passExtra = showExtra ? true : elExtra !== "1";
+          // Show only artwork cards when toggle is on
+          const passArtwork = !showArtworkOnly || elArtwork === "1";
 
-          if (passColl && passQuery && passMissing && passExtra) {
+          if (passColl && passQuery && passMissing && passExtra && passArtwork) {
             el.classList.remove("hidden");
             visible.push(el);
           } else {
@@ -877,24 +962,82 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
           }
         }
 
-        // Sort
-        visible.sort((a, b) => {
-          const ta = Number(a.getAttribute("data-ts")) || 0;
-          const tb = Number(b.getAttribute("data-ts")) || 0;
-          const rank = (t, dir) =>
-            t === 0
-              ? dir === "asc"
-                ? Number.POSITIVE_INFINITY
-                : Number.NEGATIVE_INFINITY
-              : t;
-          const dir = sort.value;
-          return dir === "asc"
-            ? rank(ta, dir) - rank(tb, dir)
-            : rank(tb, dir) - rank(ta, dir);
-        });
+        // Clear existing artwork headers
+        $$(".artwork-header").forEach(el => el.remove());
 
-        // Append to container
-        visible.forEach((el) => cardsContainer.appendChild(el));
+        if (showArtworkOnly && visible.length > 0) {
+          // Group by artwork
+          const artworkGroups = new Map();
+
+          visible.forEach(el => {
+            const artworkId = el.getAttribute("data-artwork-id") || "";
+            const artworkName = el.getAttribute("data-artwork-name") || "";
+            const isHead = el.getAttribute("data-is-head") === "1";
+
+            if (!artworkGroups.has(artworkId)) {
+              artworkGroups.set(artworkId, {
+                name: artworkName,
+                head: null,
+                cards: []
+              });
+            }
+
+            if (isHead) {
+              artworkGroups.get(artworkId).head = el;
+            } else {
+              artworkGroups.get(artworkId).cards.push(el);
+            }
+          });
+
+          // Clear container
+          cardsContainer.innerHTML = "";
+
+          // Render each artwork group
+          artworkGroups.forEach((group, artworkId) => {
+            // Create artwork header
+            const header = document.createElement("div");
+            header.className = "artwork-header col-span-full mb-4 mt-8 first:mt-0";
+            header.innerHTML = `
+              <div class="flex items-center gap-4">
+                <div class="flex-1 h-px bg-gradient-to-r from-transparent via-[var(--terracotta)] to-transparent dark:via-[var(--ember)] opacity-50"></div>
+                <h2 class="text-xl font-bold tracking-tight text-[var(--deep-brown)] dark:text-[var(--moonlit-bone)] px-4">
+                  🎨 ${group.name}
+                </h2>
+                <div class="flex-1 h-px bg-gradient-to-r from-[var(--terracotta)] via-[var(--terracotta)] to-transparent dark:from-[var(--ember)] dark:via-[var(--ember)] opacity-50"></div>
+              </div>
+            `;
+            cardsContainer.appendChild(header);
+
+            // Add head artwork first if it exists
+            if (group.head) {
+              cardsContainer.appendChild(group.head);
+            }
+
+            // Add other cards
+            group.cards.forEach(card => cardsContainer.appendChild(card));
+          });
+        } else {
+          // Normal sort and append
+          visible.sort((a, b) => {
+            const ta = Number(a.getAttribute("data-ts")) || 0;
+            const tb = Number(b.getAttribute("data-ts")) || 0;
+            const rank = (t, dir) =>
+              t === 0
+                ? dir === "asc"
+                  ? Number.POSITIVE_INFINITY
+                  : Number.NEGATIVE_INFINITY
+                : t;
+            const dir = sort.value;
+            return dir === "asc"
+              ? rank(ta, dir) - rank(tb, dir)
+              : rank(tb, dir) - rank(ta, dir);
+          });
+
+          // Clear container and re-append in sorted order
+          cardsContainer.innerHTML = "";
+          visible.forEach((el) => cardsContainer.appendChild(el));
+        }
+
         empty.classList.toggle("hidden", visible.length > 0);
 
         // Update counter
@@ -924,6 +1067,10 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
       });
       extraToggle.addEventListener("change", () => {
         showExtra = extraToggle.checked;
+        apply();
+      });
+      artworkToggle.addEventListener("change", () => {
+        showArtworkOnly = artworkToggle.checked;
         apply();
       });
       q.addEventListener("input", apply);

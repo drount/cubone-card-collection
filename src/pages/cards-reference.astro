@@ -1,0 +1,347 @@
+---
+import { getCollection } from "astro:content";
+
+const cards = await getCollection("cards");
+
+// Sort cards by collection name, then by number
+const sortedCards = cards.sort((a, b) => {
+  const collA = a.data.collection_name || '';
+  const collB = b.data.collection_name || '';
+  if (collA !== collB) return collA.localeCompare(collB);
+  return a.data.number.localeCompare(b.data.number);
+});
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cards Reference - Quick Image Lookup</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    .header {
+      background: white;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+
+    .header .hint {
+      background: #fff5f0;
+      border-left: 4px solid #d4816b;
+      padding: 12px;
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 15px;
+      border-radius: 4px;
+    }
+
+    .search-box {
+      width: 100%;
+      max-width: 500px;
+      padding: 12px 16px;
+      font-size: 16px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-box:focus {
+      border-color: #d4816b;
+    }
+
+    .stats {
+      color: #666;
+      font-size: 14px;
+      margin-top: 10px;
+      font-weight: 500;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .card-item {
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .card-item:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .card-item.hidden {
+      display: none;
+    }
+
+    .card-image-container {
+      width: 100%;
+      height: 280px;
+      background: #fafafa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .card-image {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .card-info {
+      padding: 12px;
+    }
+
+    .card-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .card-number {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    .card-collection {
+      font-size: 11px;
+      color: #999;
+      font-style: italic;
+      margin-bottom: 6px;
+    }
+
+    .card-slug {
+      font-size: 10px;
+      font-family: 'Courier New', monospace;
+      color: #d4816b;
+      background: #fff5f0;
+      padding: 4px 8px;
+      border-radius: 4px;
+      display: inline-block;
+      cursor: pointer;
+    }
+
+    .card-slug:hover {
+      background: #ffe5d5;
+    }
+
+    .copied-toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #2d3748;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    .copied-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .badges {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-weight: 600;
+    }
+
+    .badge-holo {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .badge-first {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .badge-missing {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .badge-extra {
+      background: #e9d5ff;
+      color: #6b21a8;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🎴 Card Reference Guide</h1>
+    <p>Quick visual reference for selecting cards in the CMS</p>
+    <div class="hint">
+      💡 <strong>Tip:</strong> Click on any card slug (like <code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px;">ju-50-50</code>) to copy it to your clipboard!
+    </div>
+    <input
+      type="text"
+      id="searchInput"
+      class="search-box"
+      placeholder="Search cards... (e.g., 'Jungle', '104', 'Holographic')"
+      autofocus
+    >
+    <div class="stats" id="statsDisplay">Showing {cards.length} cards</div>
+  </div>
+
+  <div class="cards-grid" id="cardsGrid">
+    {sortedCards.map(({ slug, data }) => {
+      const { name, number, collection_name, image, holographic, first_edition, missing, extra } = data;
+      const searchText = [name, collection_name, number, slug].join(' ').toLowerCase();
+
+      return (
+        <div class="card-item" data-search={searchText}>
+          <div class="card-image-container">
+            {image ? (
+              <img src={image} alt={name} class="card-image" loading="lazy" />
+            ) : (
+              <div style="color: #ccc; text-align: center;">No Image</div>
+            )}
+          </div>
+          <div class="card-info">
+            <div class="card-name">{name}</div>
+            <div class="card-number">#{number}</div>
+            <div class="card-collection">{collection_name || 'Unknown Collection'}</div>
+            <div class="card-slug" data-slug={slug} title="Click to copy slug">
+              {slug}
+            </div>
+            <div class="badges">
+              {holographic && <span class="badge badge-holo">✨ Holo</span>}
+              {first_edition && <span class="badge badge-first">🥇 1st Ed</span>}
+              {missing && <span class="badge badge-missing">🔎 Missing</span>}
+              {extra && <span class="badge badge-extra">🧩 Extra</span>}
+            </div>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+
+  <div class="copied-toast" id="copiedToast">
+    ✓ Slug copied to clipboard!
+  </div>
+
+  <script>
+    // Search functionality
+    const searchInput = document.getElementById('searchInput');
+    const statsDisplay = document.getElementById('statsDisplay');
+    const allCards = document.querySelectorAll('.card-item');
+
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase();
+      let visibleCount = 0;
+
+      allCards.forEach(card => {
+        const searchText = card.dataset.search || '';
+        if (searchText.includes(query)) {
+          card.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+
+      statsDisplay.textContent = query
+        ? `Showing ${visibleCount} of ${allCards.length} cards`
+        : `Showing ${allCards.length} cards`;
+    });
+
+    // Copy slug to clipboard
+    const slugElements = document.querySelectorAll('.card-slug');
+    const toast = document.getElementById('copiedToast');
+
+    slugElements.forEach(el => {
+      el.addEventListener('click', async () => {
+        const slug = el.dataset.slug;
+        try {
+          await navigator.clipboard.writeText(slug);
+
+          // Show toast
+          toast.textContent = `✓ "${slug}" copied!`;
+          toast.classList.add('show');
+
+          setTimeout(() => {
+            toast.classList.remove('show');
+          }, 2000);
+        } catch (err) {
+          console.error('Failed to copy:', err);
+          // Fallback for older browsers
+          const textArea = document.createElement('textarea');
+          textArea.value = slug;
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+
+          toast.textContent = `✓ "${slug}" copied!`;
+          toast.classList.add('show');
+          setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+      });
+    });
+
+    // Keyboard shortcut: / to focus search
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement !== searchInput) {
+        e.preventDefault();
+        searchInput.focus();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -48,3 +48,40 @@ collections:
       - { label: "Missing", name: "missing", widget: "boolean", default: false }
       - { label: "Extra", name: "extra", widget: "boolean", default: false }
       - { label: "Notes", name: "notes", widget: "markdown", required: false }
+
+  - name: "artworks"
+    label: "Artworks"
+    label_singular: "Artwork"
+    folder: "src/content/artworks"
+    create: true
+    slug: "{{fields.name}}"
+    identifier_field: name
+    fields:
+      - { label: "Name", name: "name", widget: "string", hint: "Title of the artwork grouping" }
+      - {
+          label: "Head Artwork",
+          name: "head_artwork",
+          widget: "relation",
+          collection: "cards",
+          search_fields: ["name", "number", "collection_name"],
+          value_field: "{{slug}}",
+          display_fields: ["{{slug}}", "name", "number", "collection_name"],
+          hint: "💡 Tip: Open /cards-reference in another tab to see all card images. Click any slug to copy it!"
+        }
+      - {
+          label: "Grouped Artworks",
+          name: "grouped_artworks",
+          widget: "list",
+          summary: "{{fields.card.name}} #{{fields.card.number}} ({{fields.card.slug}})",
+          field: {
+            label: "Card",
+            name: "card",
+            widget: "relation",
+            collection: "cards",
+            search_fields: ["name", "number", "collection_name"],
+            value_field: "{{slug}}",
+            display_fields: ["{{slug}}", "name", "number", "collection_name"]
+          },
+          hint: "Select all cards that share this artwork. Check the preview panel on the right to see images ➡️"
+        }
+      - { label: "Description", name: "body", widget: "markdown", required: false, hint: "Optional description of this artwork grouping" }

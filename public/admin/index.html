@@ -4,17 +4,271 @@
     <meta charset="utf-8" />
     <title>Card Collection CMS</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      /* Preview styles for artwork editor */
+      .artwork-preview {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        padding: 20px;
+        max-width: 800px;
+      }
+      .artwork-preview h1 {
+        font-size: 24px;
+        margin-bottom: 10px;
+        color: #333;
+      }
+      .artwork-preview h2 {
+        font-size: 18px;
+        margin: 20px 0 10px;
+        color: #555;
+      }
+      .artwork-preview .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 15px;
+        margin-top: 10px;
+      }
+      .artwork-preview .card-item {
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #f9f9f9;
+        transition: transform 0.2s;
+      }
+      .artwork-preview .card-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      }
+      .artwork-preview .card-item.head {
+        border-color: #d4816b;
+        background: #fffaf7;
+      }
+      .artwork-preview .card-item img {
+        width: 100%;
+        height: 200px;
+        object-fit: contain;
+        background: white;
+        padding: 8px;
+      }
+      .artwork-preview .card-info {
+        padding: 8px;
+        font-size: 12px;
+        text-align: center;
+        border-top: 1px solid #ddd;
+      }
+      .artwork-preview .card-name {
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      .artwork-preview .card-number {
+        color: #666;
+      }
+      .artwork-preview .head-badge {
+        background: #d4816b;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-top: 4px;
+        display: inline-block;
+      }
+      .artwork-preview .description {
+        margin-top: 20px;
+        padding: 15px;
+        background: #f5f5f5;
+        border-left: 4px solid #d4816b;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      .artwork-preview .empty-state {
+        padding: 40px;
+        text-align: center;
+        color: #999;
+        font-style: italic;
+      }
+    </style>
   </head>
   <body>
     <!-- Decap CMS from CDN -->
     <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
 
     <script>
-      // (Optional) preview styles (your site CSS)
-      // CMS.registerPreviewStyle("/global.css");
+      // Custom preview template for Artworks with card data fetching
+      var ArtworkPreview = createClass({
+        getInitialState: function() {
+          return {
+            cardsData: {}
+          };
+        },
 
-      // (Optional) custom preview components could go here
-      // CMS.registerPreviewTemplate('cards', YourPreviewComponent);
+        componentDidMount: function() {
+          this.fetchCardsData();
+        },
+
+        componentDidUpdate: function(prevProps) {
+          // Refetch when entry changes
+          var prevEntry = prevProps.entry;
+          var currentEntry = this.props.entry;
+
+          if (prevEntry !== currentEntry) {
+            this.fetchCardsData();
+          }
+        },
+
+        fetchCardsData: function() {
+          var self = this;
+          var entry = this.props.entry;
+          var headArtwork = entry.getIn(['data', 'head_artwork']);
+          var groupedArtworks = entry.getIn(['data', 'grouped_artworks']);
+
+          var slugsToFetch = [];
+          if (headArtwork) slugsToFetch.push(headArtwork);
+
+          if (groupedArtworks) {
+            groupedArtworks.forEach(function(item) {
+              var slug = item ? (item.get ? item.get('card') : item.card) : null;
+              if (slug) slugsToFetch.push(slug);
+            });
+          }
+
+          // Fetch card data from the cards collection
+          slugsToFetch.forEach(function(slug) {
+            if (!self.state.cardsData[slug]) {
+              // Try to get card data from CMS entries
+              fetch('/src/content/cards/' + slug + '.md')
+                .then(function(response) {
+                  if (response.ok) return response.text();
+                  throw new Error('Card not found');
+                })
+                .then(function(content) {
+                  var cardData = self.parseCardFrontmatter(content, slug);
+                  var newCardsData = Object.assign({}, self.state.cardsData);
+                  newCardsData[slug] = cardData;
+                  self.setState({ cardsData: newCardsData });
+                })
+                .catch(function(err) {
+                  console.warn('Could not fetch card:', slug, err);
+                });
+            }
+          });
+        },
+
+        parseCardFrontmatter: function(content, slug) {
+          // Simple frontmatter parser
+          var lines = content.split('\n');
+          var inFrontmatter = false;
+          var data = { slug: slug };
+
+          for (var i = 0; i < lines.length; i++) {
+            var line = lines[i].trim();
+            if (line === '---') {
+              if (!inFrontmatter) {
+                inFrontmatter = true;
+              } else {
+                break;
+              }
+              continue;
+            }
+
+            if (inFrontmatter && line) {
+              var colonIndex = line.indexOf(':');
+              if (colonIndex > -1) {
+                var key = line.substring(0, colonIndex).trim();
+                var value = line.substring(colonIndex + 1).trim();
+                // Remove quotes if present
+                value = value.replace(/^["']|["']$/g, '');
+                data[key] = value;
+              }
+            }
+          }
+
+          return data;
+        },
+
+        render: function() {
+          var self = this;
+          var entry = this.props.entry;
+          var name = entry.getIn(['data', 'name']);
+          var headArtwork = entry.getIn(['data', 'head_artwork']);
+          var groupedArtworks = entry.getIn(['data', 'grouped_artworks']);
+          var description = entry.getIn(['data', 'body']);
+
+          // Helper function to render a card with real data
+          var renderCard = function(cardSlug, isHead) {
+            if (!cardSlug) return null;
+
+            var cardData = self.state.cardsData[cardSlug] || {};
+            var imagePath = cardData.image || '/uploads/' + cardSlug + '.jpg';
+            var cardName = cardData.name || cardSlug;
+            var cardNumber = cardData.number || '';
+            var collectionName = cardData.collection_name || '';
+
+            return h('div', {
+              className: isHead ? 'card-item head' : 'card-item',
+              key: cardSlug
+            },
+              h('img', {
+                src: imagePath,
+                alt: cardName,
+                onError: function(e) {
+                  // Try alternate image paths
+                  if (e.target.src.indexOf('.jpg') > -1) {
+                    e.target.src = e.target.src.replace('.jpg', '.jpeg');
+                  } else if (e.target.src.indexOf('.jpeg') > -1) {
+                    e.target.src = e.target.src.replace('.jpeg', '.png');
+                  } else {
+                    e.target.src = '/favicon.svg';
+                  }
+                }
+              }),
+              h('div', { className: 'card-info' },
+                h('div', { className: 'card-name' }, cardName),
+                cardNumber && h('div', { className: 'card-number' }, '#' + cardNumber),
+                collectionName && h('div', {
+                  className: 'card-number',
+                  style: { fontSize: '10px', marginTop: '2px' }
+                }, collectionName),
+                isHead && h('div', { className: 'head-badge' }, 'Head Artwork')
+              )
+            );
+          };
+
+          return h('div', { className: 'artwork-preview' },
+            h('h1', {}, name || 'Untitled Artwork'),
+
+            headArtwork && h('div', {},
+              h('h2', {}, 'Head Artwork'),
+              h('div', { className: 'card-grid' },
+                renderCard(headArtwork, true)
+              )
+            ),
+
+            groupedArtworks && groupedArtworks.size > 0 && h('div', {},
+              h('h2', {}, 'Grouped Artworks (' + groupedArtworks.size + ')'),
+              h('div', { className: 'card-grid' },
+                groupedArtworks.map(function(artwork, index) {
+                  var cardSlug = artwork ? (artwork.get ? artwork.get('card') : artwork.card) : null;
+                  return renderCard(cardSlug, false);
+                }).toArray()
+              )
+            ),
+
+            description && h('div', { className: 'description' },
+              h('strong', {}, 'Description: '),
+              this.props.widgetFor('body')
+            ),
+
+            !headArtwork && (!groupedArtworks || groupedArtworks.size === 0) &&
+              h('div', { className: 'empty-state' },
+                '👈 Select a head artwork and grouped artworks from the left panel to see the preview'
+              )
+          );
+        }
+      });
+
+      // Register the preview template
+      CMS.registerPreviewTemplate('artworks', ArtworkPreview);
     </script>
   </body>
 </html>
