@@ -8,7 +8,10 @@ const artworks = await getCollection("artworks");
 // Build a set of card slugs that belong to any artwork
 const artworkCardSlugs = new Set<string>();
 // Map card slug to artwork info
-const cardToArtwork = new Map<string, { name: string; id: string; isHead: boolean }>();
+const cardToArtwork = new Map<
+  string,
+  { name: string; id: string; isHead: boolean }
+>();
 
 artworks.forEach((artwork) => {
   const artworkId = artwork.slug;
@@ -19,17 +22,17 @@ artworks.forEach((artwork) => {
   cardToArtwork.set(artwork.data.head_artwork, {
     name: artworkName,
     id: artworkId,
-    isHead: true
+    isHead: true,
   });
 
   // Add grouped artworks
   artwork.data.grouped_artworks.forEach((item) => {
-    const slug = typeof item === 'string' ? item : item.card;
+    const slug = typeof item === "string" ? item : item.card;
     artworkCardSlugs.add(slug);
     cardToArtwork.set(slug, {
       name: artworkName,
       id: artworkId,
-      isHead: false
+      isHead: false,
     });
   });
 });
@@ -507,7 +510,11 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
               <label
                 class="relative inline-flex items-center cursor-pointer align-middle max-h-full"
               >
-                <input type="checkbox" id="artworkToggle" class="sr-only peer" />
+                <input
+                  type="checkbox"
+                  id="artworkToggle"
+                  class="sr-only peer"
+                />
                 <div
                   class="w-11 h-6 bg-[var(--warm-tan)]/50 border-2 border-[var(--warm-tan)] rounded-full peer
                          peer-checked:bg-[var(--terracotta)] peer-checked:border-[var(--terracotta)]
@@ -861,34 +868,56 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
     </div>
 
     <!-- Scripts -->
-    <script type="module">
-      const $ = (s) => document.querySelector(s);
-      const $$ = (s) => Array.from(document.querySelectorAll(s));
-      const cardsContainer = $("#cardsContainer");
-      const empty = $("#empty");
-      const collection = $("#collection");
-      const missingToggle = $("#missingToggle");
-      const extraToggle = $("#extraToggle");
-      const artworkToggle = $("#artworkToggle");
-      const q = $("#q");
-      const sort = $("#sort");
-      const resultCount = $("#resultCount");
-      const filtersToggle = $("#filtersToggle");
-      const controlsForm = $("#controls");
-      const viewToggle = $("#viewToggle");
-      const viewIcon = $("#viewIcon");
+    <script>
+      import { applyFilters } from "../lib/filters/filter-engine";
+      import { sortByReleaseDate } from "../lib/filters/sort";
+      import {
+        groupByArtwork,
+        createArtworkHeader,
+      } from "../lib/rendering/artwork-grouper";
+      import { debounce } from "../lib/utils/debounce";
 
-      let showMissingOnly = false;
-      let showExtra = false; // off = hide extras
-      let showArtworkOnly = false;
-      let currentView = localStorage.getItem("cardView") || "grid";
+      const $ = (s: string) => document.querySelector(s);
+      const $$ = (s: string) => Array.from(document.querySelectorAll(s));
+      const cardsContainer = $("#cardsContainer") as HTMLElement;
+      const empty = $("#empty") as HTMLElement;
+      const collection = $("#collection") as HTMLSelectElement;
+      const missingToggle = $("#missingToggle") as HTMLInputElement;
+      const extraToggle = $("#extraToggle") as HTMLInputElement;
+      const artworkToggle = $("#artworkToggle") as HTMLInputElement;
+      const q = $("#q") as HTMLInputElement;
+      const sort = $("#sort") as HTMLSelectElement;
+      const resultCount = $("#resultCount") as HTMLElement;
+      const filtersToggle = $("#filtersToggle") as HTMLElement | null;
+      const controlsForm = $("#controls") as HTMLElement;
+      const viewToggle = $("#viewToggle") as HTMLElement | null;
+      const viewIcon = $("#viewIcon") as HTMLElement;
+
+      // State - single source of truth
+      const state: {
+        collection: string;
+        searchQuery: string;
+        sortOrder: "asc" | "desc";
+        showMissingOnly: boolean;
+        showExtra: boolean;
+        showArtworkOnly: boolean;
+        currentView: string;
+      } = {
+        collection: "",
+        searchQuery: "",
+        sortOrder: "desc",
+        showMissingOnly: false,
+        showExtra: false,
+        showArtworkOnly: false,
+        currentView: localStorage.getItem("cardView") || "grid",
+      };
 
       // Store all original card items once at initialization
-      const allCardItems = $$(".card-item");
+      const allCardItems = $$(".card-item") as HTMLElement[];
 
       // Initialize view
-      function setView(view) {
-        currentView = view;
+      function setView(view: string) {
+        state.currentView = view;
         localStorage.setItem("cardView", view);
 
         const gridContents = $$(".grid-content");
@@ -930,125 +959,93 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
           viewIcon.textContent = "⊞"; // Show grid icon when in list view
         }
 
-        apply();
+        render();
       }
 
-      function apply() {
-        const coll = collection.value.trim().toLowerCase();
-        const query = q.value.trim().toLowerCase();
-        const items = allCardItems;
-        let visible = [];
+      // Main render function - orchestrates filtering, sorting, and rendering
+      function render() {
+        // 1. Filter using pure function
+        const { visible, hidden } = applyFilters(allCardItems, state);
 
-        for (const el of items) {
-          const elColl = (el.getAttribute("data-coll") || "").toLowerCase();
-          const elMissing = el.getAttribute("data-missing") || "0";
-          const elExtra = el.getAttribute("data-extra") || "0";
-          const elArtwork = el.getAttribute("data-artwork") || "0";
-          const blob = el.getAttribute("data-search") || "";
+        // 2. Update visibility
+        visible.forEach((el) => el.classList.remove("hidden"));
+        hidden.forEach((el) => el.classList.add("hidden"));
 
-          const passColl = !coll || elColl === coll;
-          const passQuery = !query || blob.includes(query);
-          const passMissing = !showMissingOnly || elMissing === "1";
-          // Hide extras unless toggle is on
-          const passExtra = showExtra ? true : elExtra !== "1";
-          // Show only artwork cards when toggle is on
-          const passArtwork = !showArtworkOnly || elArtwork === "1";
-
-          if (passColl && passQuery && passMissing && passExtra && passArtwork) {
-            el.classList.remove("hidden");
-            visible.push(el);
-          } else {
-            el.classList.add("hidden");
-          }
-        }
-
-        // Clear existing artwork headers
-        $$(".artwork-header").forEach(el => el.remove());
-
-        if (showArtworkOnly && visible.length > 0) {
-          // Group by artwork
-          const artworkGroups = new Map();
-
-          visible.forEach(el => {
-            const artworkId = el.getAttribute("data-artwork-id") || "";
-            const artworkName = el.getAttribute("data-artwork-name") || "";
-            const isHead = el.getAttribute("data-is-head") === "1";
-
-            if (!artworkGroups.has(artworkId)) {
-              artworkGroups.set(artworkId, {
-                name: artworkName,
-                head: null,
-                cards: []
-              });
-            }
-
-            if (isHead) {
-              artworkGroups.get(artworkId).head = el;
-            } else {
-              artworkGroups.get(artworkId).cards.push(el);
-            }
-          });
-
-          // Clear container
-          cardsContainer.innerHTML = "";
-
-          // Render each artwork group
-          artworkGroups.forEach((group, artworkId) => {
-            // Create artwork header
-            const header = document.createElement("div");
-            header.className = "artwork-header col-span-full mb-4 mt-8 first:mt-0";
-            header.innerHTML = `
-              <div class="flex items-center gap-4">
-                <div class="flex-1 h-px bg-gradient-to-r from-transparent via-[var(--terracotta)] to-transparent dark:via-[var(--ember)] opacity-50"></div>
-                <h2 class="text-xl font-bold tracking-tight text-[var(--deep-brown)] dark:text-[var(--moonlit-bone)] px-4">
-                  🎨 ${group.name}
-                </h2>
-                <div class="flex-1 h-px bg-gradient-to-r from-[var(--terracotta)] via-[var(--terracotta)] to-transparent dark:from-[var(--ember)] dark:via-[var(--ember)] opacity-50"></div>
-              </div>
-            `;
-            cardsContainer.appendChild(header);
-
-            // Add head artwork first if it exists
-            if (group.head) {
-              cardsContainer.appendChild(group.head);
-            }
-
-            // Add other cards
-            group.cards.forEach(card => cardsContainer.appendChild(card));
-          });
+        // 3. Sort or group based on artwork mode
+        if (state.showArtworkOnly && visible.length > 0) {
+          renderArtworkGroups(visible);
         } else {
-          // Normal sort and append
-          visible.sort((a, b) => {
-            const ta = Number(a.getAttribute("data-ts")) || 0;
-            const tb = Number(b.getAttribute("data-ts")) || 0;
-            const rank = (t, dir) =>
-              t === 0
-                ? dir === "asc"
-                  ? Number.POSITIVE_INFINITY
-                  : Number.NEGATIVE_INFINITY
-                : t;
-            const dir = sort.value;
-            return dir === "asc"
-              ? rank(ta, dir) - rank(tb, dir)
-              : rank(tb, dir) - rank(ta, dir);
-          });
-
-          // Clear container and re-append in sorted order
-          cardsContainer.innerHTML = "";
-          visible.forEach((el) => cardsContainer.appendChild(el));
+          renderSorted(visible);
         }
 
+        // 4. Update UI
         empty.classList.toggle("hidden", visible.length > 0);
-
-        // Update counter
         resultCount.innerHTML = `<span class="font-mono">Showing ${visible.length} specimen${
           visible.length === 1 ? "" : "s"
         }</span>`;
       }
 
+      // Render cards sorted by date
+      function renderSorted(visible: HTMLElement[]) {
+        const sorted = sortByReleaseDate(visible, state.sortOrder);
+
+        // Clear artwork headers only
+        $$(".artwork-header").forEach((el) => el.remove());
+
+        // Re-append in sorted order (appendChild moves elements if already in DOM)
+        sorted.forEach((el) => cardsContainer.appendChild(el));
+      }
+
+      // Render cards grouped by artwork
+      function renderArtworkGroups(visible) {
+        const groups = groupByArtwork(visible);
+
+        // Clear and rebuild (necessary for grouped view)
+        cardsContainer.innerHTML = "";
+
+        groups.forEach((group) => {
+          cardsContainer.appendChild(createArtworkHeader(group.name));
+          if (group.head) cardsContainer.appendChild(group.head);
+          group.cards.forEach((card) => cardsContainer.appendChild(card));
+        });
+      }
+
+      // Event handlers - update state and render
+      collection.addEventListener("change", () => {
+        state.collection = collection.value.trim();
+        render();
+      });
+
+      missingToggle.addEventListener("change", () => {
+        state.showMissingOnly = missingToggle.checked;
+        render();
+      });
+
+      extraToggle.addEventListener("change", () => {
+        state.showExtra = extraToggle.checked;
+        render();
+      });
+
+      artworkToggle.addEventListener("change", () => {
+        state.showArtworkOnly = artworkToggle.checked;
+        render();
+      });
+
+      // Debounced search for performance
+      const debouncedRender = debounce(() => render(), 300);
+      q.addEventListener("input", () => {
+        state.searchQuery = q.value.trim();
+        debouncedRender();
+      });
+
+      sort.addEventListener("change", () => {
+        state.sortOrder = sort.value as "asc" | "desc";
+        render();
+      });
+
       // View toggle
       viewToggle?.addEventListener("click", () => {
-        setView(currentView === "grid" ? "list" : "grid");
+        setView(state.currentView === "grid" ? "list" : "grid");
       });
 
       // Theme toggle
@@ -1059,25 +1056,8 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
         localStorage.setItem("theme", next);
       });
 
-      // Filters logic
-      collection.addEventListener("change", apply);
-      missingToggle.addEventListener("change", () => {
-        showMissingOnly = missingToggle.checked;
-        apply();
-      });
-      extraToggle.addEventListener("change", () => {
-        showExtra = extraToggle.checked;
-        apply();
-      });
-      artworkToggle.addEventListener("change", () => {
-        showArtworkOnly = artworkToggle.checked;
-        apply();
-      });
-      q.addEventListener("input", apply);
-      sort.addEventListener("change", apply);
-
-      // Initialize view and apply filters
-      setView(currentView);
+      // Initialize view and render
+      setView(state.currentView);
 
       // Mobile: toggle filters panel
       filtersToggle?.addEventListener("click", () => {
@@ -1105,15 +1085,17 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
         }
       });
       // ---------- IMAGE MODAL ----------
-      const modal = document.getElementById("imgModal");
-      const modalImg = document.getElementById("imgModalImg");
-      const modalLabel = document.getElementById("imgModalLabel");
-      const modalClose = document.getElementById("imgModalClose");
-      let lastFocused = null;
+      const modal = document.getElementById("imgModal") as HTMLElement | null;
+      const modalImg = document.getElementById("imgModalImg") as HTMLImageElement | null;
+      const modalLabel = document.getElementById("imgModalLabel") as HTMLElement | null;
+      const modalClose = document.getElementById("imgModalClose") as HTMLElement | null;
+      let lastFocused: HTMLElement | null = null;
 
       // Open modal
-      function openImgModal(src, alt, trigger) {
-        lastFocused = trigger || document.activeElement;
+      function openImgModal(src: string, alt: string, trigger: Element) {
+        if (!modal || !modalImg || !modalLabel || !modalClose) return;
+
+        lastFocused = (trigger || document.activeElement) as HTMLElement;
 
         modalImg.src = src;
         modalImg.alt = alt || "";
@@ -1127,6 +1109,8 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
 
       // Close modal
       function closeImgModal() {
+        if (!modal || !modalImg || !modalLabel) return;
+
         modal.classList.add("hidden");
         modal.classList.remove("flex");
         document.body.classList.remove("overflow-hidden");
@@ -1145,12 +1129,12 @@ const collectionNames = [...new Set(cards.map((c) => c.data.collection_name))]
       });
 
       // Close actions
-      modalClose.addEventListener("click", closeImgModal);
-      modal.addEventListener("click", (e) => {
+      modalClose?.addEventListener("click", closeImgModal);
+      modal?.addEventListener("click", (e) => {
         if (e.target === modal) closeImgModal(); // click backdrop
       });
       document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && !modal.classList.contains("hidden"))
+        if (e.key === "Escape" && modal && !modal.classList.contains("hidden"))
           closeImgModal();
       });
     </script>
